@@ -22,7 +22,7 @@ airline_data =  pd.read_csv('https://cf-courses-data.s3.us.cloud-object-storage.
 app = dash.Dash(__name__)
 server = app.server
 # Build dash app layout
-app.layout = html.Div(children=[ html.H1('Flight Delay Time Statistics', 
+app.layout = html.Div(children=[ html.H1('Taquitos', 
                                 style={'textAlign': 'center', 'color': '#503D36',
                                 'font-size': 30}),
                                 html.Div(["Input Year: ", dcc.Input(id='input-year', value='2010', 
