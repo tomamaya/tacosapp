@@ -1,102 +1,101 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Fri Mar  1 18:02:37 2024
+Created on Sun Mar  3 14:22:20 2024
 
 @author: tomamaya
 """
 
-# Import required libraries
 import pandas as pd
 import dash
-from dash import dcc
-from dash import html
+from dash import dcc, html
 from dash.dependencies import Input, Output
-import plotly.express as px
-# Read the airline data into pandas dataframe
-airline_data =  pd.read_csv('https://cf-courses-data.s3.us.cloud-object-storage.appdomain.cloud/IBMDeveloperSkillsNetwork-DV0101EN-SkillsNetwork/Data%20Files/airline_data.csv', 
-                            encoding = "ISO-8859-1",
-                            dtype={'Div1Airport': str, 'Div1TailNum': str, 
-                                   'Div2Airport': str, 'Div2TailNum': str})
-# Create a dash application
+import folium
+from folium.plugins import MarkerCluster
+
+#read csv data
+
+df = pd.read_csv("places-of-taqueria-in-japan1.csv")
+df_cor= df[["coordinatex","coordinatey","name","rating","reviews"]]
+cor_list=[]
+info_list=[]
+
+for i in df_cor.index:
+    #print(df_cor["coordinatex"][i],df_cor["coordinatey"][i])
+    cor_list.append((df_cor["coordinatex"][i],df_cor["coordinatey"][i]))
+    info_list.append((df_cor["name"][i],df_cor["rating"][i],df_cor["reviews"][i]))
+
+# Create a DataFrame for easy filtering
+import pandas as pd
+df = pd.DataFrame({
+    'Coordinates': cor_list,
+    'Name': [info[0] for info in info_list],
+    'Rating': [info[1] for info in info_list],
+    'Review': [info[2] for info in info_list]
+})
+# Initialize the Dash app
 app = dash.Dash(__name__)
 server = app.server
-# Build dash app layout
-app.layout = html.Div(children=[ html.H1('Taquitos', 
-                                style={'textAlign': 'center', 'color': '#503D36',
-                                'font-size': 30}),
-                                html.Div(["Input Year: ", dcc.Input(id='input-year', value='2010', 
-                                type='number', style={'height':'35px', 'font-size': 30}),], 
-                                style={'font-size': 30}),
-                                html.Br(),
-                                html.Br(), 
-                                # Segment 1
-                                html.Div([
-                                        html.Div(dcc.Graph(id='carrier-plot')),
-                                        html.Div(dcc.Graph(id='weather-plot'))
-                                ], style={'display': 'flex'}),
-                                # Segment 2
-                                html.Div([
-                                        html.Div(dcc.Graph(id='nas-plot')),
-                                        html.Div(dcc.Graph(id='security-plot'))
-                                ], style={'display': 'flex'}),
-                                # Segment 3
-                                html.Div(dcc.Graph(id='late-plot'), style={'width':'65%'})
-                                ])
-""" Compute_info function description
-This function takes in airline data and selected year as an input and performs computation for creating charts and plots.
-Arguments:
-    airline_data: Input airline data.
-    entered_year: Input year for which computation needs to be performed.
+
+# Define the layout of the app
+app.layout = html.Div([
+    html.H1('Taquerias en Japon', style={'textAlign': 'center', 'color': '#503D36','font-size': 30}),
+    html.Label("Filtrar por Rating"),
+    dcc.RangeSlider(
+        id='rating-slider',
+        min=df['Rating'].min(),
+        max=df['Rating'].max(),
+        marks={i: str(i) for i in range(int(df['Rating'].min()), int(df['Rating'].max())+1)},
+        value=[df['Rating'].min(), df['Rating'].max()],
+    ),
+    html.Label("Filtrar por # de Reviews"),
+    dcc.RangeSlider(
+        id='review-slider',
+        min=df['Review'].min(),
+        max=df['Review'].max(),
+        marks={i: str(i) for i in range(int(df['Review'].min()), int(df['Review'].max())+1, 500)},
+        value=[df['Review'].min(), df['Review'].max()],
+    ),
+    html.Div(id='map-container'),
+    html.H1('by A&T Consulting LLC', style={'textAlign': 'center', 'color': '#503D36','font-size': 30})
+])
+
+# Define callback to update the map based on filters
+@app.callback(
+    Output('map-container', 'children'),
+    [Input('rating-slider', 'value'),
+     Input('review-slider', 'value')]
+)
+def update_map(selected_rating, selected_review):
+    filtered_df = df[(df['Rating'] >= selected_rating[0]) & (df['Rating'] <= selected_rating[1])]
     
-Returns:
-    Computed average dataframes for carrier delay, weather delay, NAS delay, security delay, and late aircraft delay.
-"""
-def compute_info(airline_data, entered_year):
-    # Select data
-    df =  airline_data[airline_data['Year']==int(entered_year)]
-    # Compute delay averages
-    avg_car = df.groupby(['Month','Reporting_Airline'])['CarrierDelay'].mean().reset_index()
-    avg_weather = df.groupby(['Month','Reporting_Airline'])['WeatherDelay'].mean().reset_index()
-    avg_NAS = df.groupby(['Month','Reporting_Airline'])['NASDelay'].mean().reset_index()
-    avg_sec = df.groupby(['Month','Reporting_Airline'])['SecurityDelay'].mean().reset_index()
-    avg_late = df.groupby(['Month','Reporting_Airline'])['LateAircraftDelay'].mean().reset_index()
-    return avg_car, avg_weather, avg_NAS, avg_sec, avg_late
-"""Callback Function
-Function that returns fugures using the provided input year.
-Arguments:
-    entered_year: Input year provided by the user.
-    
-Returns:
-    List of figures computed using the provided helper function `compute_info`.
-"""
-# Callback decorator
-@app.callback( [
-               Output(component_id='carrier-plot', component_property='figure'),
-               Output(component_id='weather-plot', component_property='figure'),
-               Output(component_id='nas-plot', component_property='figure'),
-               Output(component_id='security-plot', component_property='figure'),
-               Output(component_id='late-plot', component_property='figure')
-               ],
-               Input(component_id='input-year', component_property='value'))
-# Computation to callback function and return graph
-def get_graph(entered_year):
-    
-    # Compute required information for creating graph from the data
-    avg_car, avg_weather, avg_NAS, avg_sec, avg_late = compute_info(airline_data, entered_year)
-            
-    # Line plot for carrier delay
-    carrier_fig = px.line(avg_car, x='Month', y='CarrierDelay', color='Reporting_Airline', title='Average carrrier delay time (minutes) by airline')
-    # Line plot for weather delay
-    weather_fig = px.line(avg_weather, x='Month', y='WeatherDelay', color='Reporting_Airline', title='Average weather delay time (minutes) by airline')
-    # Line plot for nas delay
-    nas_fig = px.line(avg_NAS, x='Month', y='NASDelay', color='Reporting_Airline', title='Average NAS delay time (minutes) by airline')
-    # Line plot for security delay
-    sec_fig = px.line(avg_sec, x='Month', y='SecurityDelay', color='Reporting_Airline', title='Average security delay time (minutes) by airline')
-    # Line plot for late aircraft delay
-    late_fig = px.line(avg_late, x='Month', y='LateAircraftDelay', color='Reporting_Airline', title='Average late aircraft delay time (minutes) by airline')
-            
-    return[carrier_fig, weather_fig, nas_fig, sec_fig, late_fig]
+    if selected_review:
+        filtered_df = filtered_df[(filtered_df['Review'] >= selected_review[0]) & (filtered_df['Review'] <= selected_review[1])]
+
+    # Create a folium Map centered at the mean of all coordinates
+    map_center = [sum(coord[0] for coord in filtered_df['Coordinates']) / len(filtered_df),
+                  sum(coord[1] for coord in filtered_df['Coordinates']) / len(filtered_df)]
+
+    my_map = folium.Map(location=map_center, zoom_start=5)
+
+    # Create a MarkerCluster layer
+    marker_cluster = MarkerCluster().add_to(my_map)
+
+    # Add markers for each coordinate to the MarkerCluster layer
+    for index, row in filtered_df.iterrows():
+        coord = row['Coordinates']
+        name, rating, review = row['Name'], row['Rating'], row['Review']
+
+        # Create a popup with information
+        popup_text = f"Name: {name}<br>Rating: {rating}<br>Review: {review}"
+        popup = folium.Popup(popup_text, parse_html=True)
+
+        # Add the marker with the popup to the MarkerCluster layer
+        folium.Marker(location=coord, popup=popup).add_to(marker_cluster)
+
+    return html.Iframe(srcDoc=my_map._repr_html_(), width='100%', height='600px')
+
+
 # Run the app
 if __name__ == '__main__':
-    app.run_server()
+    app.run_server(debug=True)
