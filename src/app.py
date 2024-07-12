@@ -57,7 +57,7 @@ app.layout = html.Div([
         value=[df['Review'].min(), df['Review'].max()],
     ),
     html.Div(id='map-container'),
-    html.H1('by A&T Consulting LLC', style={'textAlign': 'center', 'color': '#503D36','font-size': 30})
+    html.H1('por Japano', style={'textAlign': 'center', 'color': '#503D36','font-size': 30})
 ])
 
 # Define callback to update the map based on filters
