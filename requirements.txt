@@ -1,5 +1,6 @@
 dash==2.15.0
 folium==0.16.0
 pandas==2.0.3
+numpy==1.24.3
 gunicorn
 dash-tools
