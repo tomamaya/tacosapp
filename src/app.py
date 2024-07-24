@@ -76,7 +76,7 @@ def update_map(selected_rating, selected_review):
     map_center = [sum(coord[0] for coord in filtered_df['Coordinates']) / len(filtered_df),
                   sum(coord[1] for coord in filtered_df['Coordinates']) / len(filtered_df)]
 
-    my_map = folium.Map(location=map_center, zoom_start=5)
+    my_map = folium.Map(location=map_center, tiles="OpenStreetMap", zoom_start= 5)
 
     # Create a MarkerCluster layer
     marker_cluster = MarkerCluster().add_to(my_map)
