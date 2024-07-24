@@ -88,7 +88,7 @@ def update_map_and_table(selected_rating, selected_review, search_value):
 
     # Create a folium Map centered at the mean of all coordinates
     map_center = [filtered_df['coordinatex'].mean(), filtered_df['coordinatey'].mean()]
-    my_map = folium.Map(location=[20,136], tiles="OpenStreetMap", zoom_start=5)
+    my_map = folium.Map(location=map_center, tiles="OpenStreetMap", zoom_start=5)
 
     # Create a MarkerCluster layer
     marker_cluster = MarkerCluster().add_to(my_map)
