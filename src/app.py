@@ -5,7 +5,7 @@ from dash.dash_table import DataTable
 import folium
 from folium.plugins import MarkerCluster
 
-# Read csv data
+# Read csv data (replace with your CSV file path)
 df = pd.read_csv("places-of-taqueria-in-japan2.csv")
 
 # Initialize the Dash app
@@ -14,33 +14,38 @@ server = app.server
 
 # Define the layout of the app
 app.layout = html.Div([
-    html.H1('Taquerias en Japon -Proyecto Tacos el Pata Japon-', style={'textAlign': 'center', 'color': '#503D36', 'font-size': 30}),
-    
-    html.Label("Filtrar por Rating"),
-    dcc.RangeSlider(
-        id='rating-slider',
-        min=df['rating'].min(),
-        max=df['rating'].max(),
-        marks={i: str(i) for i in range(int(df['rating'].min()), int(df['rating'].max()) + 1)},
-        value=[df['rating'].min(), df['rating'].max()],
-    ),
-    
-    html.Label("Filtrar por # de Reviews"),
-    dcc.RangeSlider(
-        id='review-slider',
-        min=df['reviews'].min(),
-        max=df['reviews'].max(),
-        marks={i: str(i) for i in range(int(df['reviews'].min()), int(df['reviews'].max()) + 1, 500)},
-        value=[df['reviews'].min(), df['reviews'].max()],
-    ),
-    
-    html.Div(id='map-and-search-container', children=[
-        html.Div(id='map-container'),
-    ]),
-    
-    html.H1('Datos Generales', style={'textAlign': 'center', 'color': '#503D36', 'font-size': 30}),
+    html.H1('Taquerias en Japon - Proyecto Tacos el Pata Japon -', style={'textAlign': 'center', 'color': '#503D36', 'font-size': 30}),
     
     html.Div([
+        html.Label("Filtrar por Rating"),
+        dcc.RangeSlider(
+            id='rating-slider',
+            min=df['rating'].min(),
+            max=df['rating'].max(),
+            marks={i: str(i) for i in range(int(df['rating'].min()), int(df['rating'].max()) + 1)},
+            value=[df['rating'].min(), df['rating'].max()],
+        ),
+    ]),
+    
+    html.Div([
+        html.Label("Filtrar por # de Reviews"),
+        dcc.RangeSlider(
+            id='review-slider',
+            min=df['reviews'].min(),
+            max=df['reviews'].max(),
+            marks={i: str(i) for i in range(int(df['reviews'].min()), int(df['reviews'].max()) + 1, 500)},
+            value=[df['reviews'].min(), df['reviews'].max()],
+        ),
+    ]),
+
+    html.Div(id='search-container', children=[
+        html.Label('Buscar por nombre de restaurante:'),
+        dcc.Input(id='name-search-input', type='text', placeholder='Buscar por Nombre en Espanol'),
+    ]),
+    
+    html.Div([
+        html.H1('Datos Generales', style={'textAlign': 'center', 'color': '#503D36', 'font-size': 30}),
+        
         DataTable(
             id='data-table',
             columns=[
@@ -60,9 +65,8 @@ app.layout = html.Div([
         ),
     ]),
     
-    html.Div(id='search-container', children=[
-        html.Label('Buscar por nombre de restaurante:'),
-        dcc.Input(id='name-search-input', type='text', placeholder='Buscar por Nombre en Espanol'),
+    html.Div(id='map-and-search-container', children=[
+        html.Div(id='map-container'),
     ]),
     
     html.Footer("Hecho por Japano ©", style={'textAlign': 'center', 'color': '#503D36', 'font-size': 14}),
@@ -88,7 +92,9 @@ def update_map_and_table(selected_rating, selected_review, search_value):
 
     # Create a folium Map centered at the mean of all coordinates
     map_center = [filtered_df['coordinatex'].mean(), filtered_df['coordinatey'].mean()]
-    my_map = folium.Map(location=map_center, tiles="OpenStreetMap", zoom_start=5)
+
+    # Initialize the Folium Map with Mapbox tiles
+    my_map = folium.Map(location=map_center, tiles="CartoDB positron", zoom_start=5)
 
     # Create a MarkerCluster layer
     marker_cluster = MarkerCluster().add_to(my_map)
